@@ -16,7 +16,9 @@ get_first_digit :: proc(s: string) -> (int, int) {
 
 calibration_value_part1 :: proc(line: string) -> int {
     first, _ := get_first_digit(line)
-    last, _ := get_first_digit(strings.reverse(line))
+    r := strings.reverse(line)
+    defer delete(r)
+    last, _ := get_first_digit(r)
     return first * 10 + last
 }
 
@@ -34,7 +36,9 @@ SPELLED_DIGITS :: [?]string{
 
 calibration_value_part2 :: proc(line: string) -> int {
     first_digit, first_digit_position := get_first_digit(line)
-    last_digit, last_digit_position := get_first_digit(strings.reverse(line))
+    r := strings.reverse(line)
+    defer delete(r)
+    last_digit, last_digit_position := get_first_digit(r)
     if last_digit_position != -1 {
         last_digit_position = len(line) - last_digit_position
     }
@@ -78,7 +82,8 @@ calibration_value_part2 :: proc(line: string) -> int {
 }
 
 main :: proc() {
-    data := os.read_entire_file_from_filename("input") or_else os.exit(1)
+    data := os.read_entire_file("input") or_else os.exit(1)
+    defer delete(data)
     s := string(data)
     sum1 := 0
     sum2 := 0

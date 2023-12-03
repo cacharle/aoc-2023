@@ -11,13 +11,15 @@ Position :: struct {
 }
 
 main :: proc() {
-    data := os.read_entire_file_from_filename("input") or_else os.exit(1)
+    data := os.read_entire_file("input") or_else os.exit(1)
+    defer delete(data)
     s := string(data)
 
     lines := strings.split_lines(s)
+    defer delete(lines)
     parts_positions := [dynamic]Position{}
     defer delete(parts_positions)
-    gears_positions := make(map[Position]struct{})
+    gears_positions := map[Position]struct{}{}
     defer delete(gears_positions)
 
     for line, y in lines {
@@ -30,7 +32,7 @@ main :: proc() {
     }
     sum: uint = 0
     sum_gears: uint = 0
-    visited := make(map[Position]struct{})
+    visited := map[Position]struct{}{}
     defer delete(visited)
     for position in parts_positions {
         gear_numbers := [dynamic]uint{}
@@ -41,10 +43,10 @@ main :: proc() {
                 y := position.y + y_modifier
                 x := position.x + x_modifier
                 if (
-                    y >= 0 && y < len(lines)
-                    && x >= 0 && x < len(lines[0])
-                    && unicode.is_digit(rune(lines[y][x]))
-                    && Position{y, x} not_in visited
+                    y >= 0 && y < len(lines) &&
+                    x >= 0 && x < len(lines[0]) &&
+                    unicode.is_digit(rune(lines[y][x])) &&
+                    Position{y, x} not_in visited
                 ) {
                     digits := [dynamic]u8{lines[y][x] - '0'}
                     defer delete(digits)

@@ -10,7 +10,8 @@ MAX_GREEN_CUBES :: 13
 MAX_BLUE_CUBES  :: 14
 
 main :: proc() {
-    data := os.read_entire_file_from_filename("input") or_else os.exit(1)
+    data := os.read_entire_file("input") or_else os.exit(1)
+    defer delete(data)
     s := string(data)
     game_id_sum := 0
     game_powers_sum := 0

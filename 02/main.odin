@@ -5,17 +5,6 @@ import "core:fmt"
 import "core:strings"
 import "core:strconv"
 
-// CubeColor :: enum {
-//     Blue,
-//     Green,
-//     Red,
-// }
-//
-// Cubes :: struct {
-//     color: CubeColor,
-//     count: int,
-// }
-
 MAX_RED_CUBES   :: 12
 MAX_GREEN_CUBES :: 13
 MAX_BLUE_CUBES  :: 14

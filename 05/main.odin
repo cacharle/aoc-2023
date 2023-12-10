@@ -6,10 +6,12 @@ import "core:strings"
 import "core:strconv"
 import "core:math"
 import "core:thread"
+import "core:c"
+import "core:simd"
 
 RangeMapping :: struct {
     source: int,
-    destition: int,
+    destination: int,
     length: int,
 }
 
@@ -21,7 +23,7 @@ location :: proc(n: int) -> int {
         for range in mapping {
             using range
             if n >= source && n < source + length {
-                n = destition + math.abs(source - n)
+                n = destination + math.abs(source - n)
                 break
             }
         }
@@ -29,8 +31,38 @@ location :: proc(n: int) -> int {
     return n
 }
 
+// simd implementation: 15s faster
+location_min :: proc(start, length: int) -> int {
+    lowest_location: i64 = c.INT64_MAX
+    start := start
+    length := length
+    for ; length % 8 != 0 && length > 0; length -= 1 {
+        lowest_location = math.min(lowest_location, i64(location(start + length - 1)))
+    }
+    setup := simd.i64x8{0, 1, 2, 3, 4, 5, 6, 7}
+    for n := start; n < start + length; n += 8 {
+        ns: simd.i64x8 = i64(n)
+        ns += setup
+        for mapping in mappings {
+            already_mapped: simd.u64x8
+            for range in mapping {
+                s: simd.i64x8 = i64(range.source)
+                d: simd.i64x8 = i64(range.destination)
+                l: simd.i64x8 = i64(range.length)
+                mask := simd.and_not(simd.lanes_ge(ns, s) & simd.lanes_lt(ns, s + l), already_mapped)
+                if simd.reduce_or(mask) == 0 do continue
+                ns = simd.select(mask , d + simd.abs(s - ns), ns)
+                already_mapped = already_mapped | mask
+                if simd.reduce_and(already_mapped) != 0 do break
+            }
+        }
+        lowest_location = math.min(lowest_location, simd.reduce_min(ns))
+    }
+    return int(lowest_location)
+}
+
 main :: proc() {
-    data := os.read_entire_file("example") or_else os.exit(2)
+    data := os.read_entire_file("input") or_else os.exit(2)
     defer delete(data)
     s := string(data)
     seed_line, _, rest := strings.partition(s, "\n")
@@ -52,9 +84,9 @@ main :: proc() {
         destition_s, _, rest := strings.partition(line, " ")
         source_s, _, length_s := strings.partition(rest, " ")
         source := strconv.atoi(source_s)
-        destition := strconv.atoi(destition_s)
+        destination := strconv.atoi(destition_s)
         length := strconv.atoi(length_s)
-        append(&mappings[len(mappings) - 1], RangeMapping{source, destition, length})
+        append(&mappings[len(mappings) - 1], RangeMapping{source, destination, length})
     }
 
     lowest_location := 0x7fffffffffffffff
@@ -85,9 +117,10 @@ main :: proc() {
             proc(t: thread.Task) {
                 data := transmute(^TaskData)t.data
                 using data
-                for n in start..<(start + length) {
-                    lowest_location = math.min(lowest_location, location(n))
-                }
+                lowest_location = location_min(start, length)
+                // for n in start..<(start + length) {
+                //     lowest_location = math.min(lowest_location, location(n))
+                // }
             },
             data,
         )
